@@ -1,0 +1,6 @@
+libjmch.a : getlines.o
+	ar rcs libjmch.a *.o
+	rm *.o
+
+getlines.o : getlines.cpp getlines.h
+	g++ -c getlines.cpp -o 
