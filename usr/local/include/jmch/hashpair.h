@@ -1,5 +1,5 @@
-#ifndef HASHPAIR_H_
-#define HASHPAIR_H_
+#ifndef JMCH_HASHPAIR_H
+#define JMCH_HASHPAIR_H
 
 #include <functional>
 

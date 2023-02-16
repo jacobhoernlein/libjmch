@@ -54,9 +54,6 @@ namespace jmch {
         
         /// @brief Reverses the list.
         void reverse();
-        
-        /// @brief Sorts the list using a stable, comparison-based algorithm.
-        void sort();
 
         /// @brief Finds and returns the index of e, if it exists in the list.
         /// @param e The element to search for.
@@ -108,32 +105,6 @@ namespace jmch {
         int front;
     };
 };
-
-template<typename T>
-void mergeSort(T *arr, int start, int end) {
-    int size = end - start + 1;
-    if (size < 2) return;
-    
-    // Partition and recursively sort.
-    int mid = start + (size / 2);
-    mergeSort(arr, start, mid - 1);
-    mergeSort(arr, mid, end);
-
-    // Collate partitions into another array.
-    T merged[size];
-    int i = start, j = mid, k = 0;
-    
-    // While there's data for both, compare directly.
-    while (i < mid && j <= end) 
-        merged[k++] = (arr[i] < arr[j]) ? arr[i++] : arr[j++];
-    
-    // When one runs out, copy the rest of the other.
-    while (i < mid) merged[k++] = arr[i++];
-    while (j <= end) merged[k++] = arr[j++];
-    
-    // Move contents of collated array into original.
-    for (k = start; k <= end; k++) arr[k] = merged[k - start];
-}
 
 template<typename T>
 jmch::List<T>::List(int s) {
@@ -193,14 +164,6 @@ void jmch::List<T>::reverse() {
     for (int i = 0; i < len; i++) 
         newArr[-1 - i] = operator[](i);
     delete[] arr; copy(newArr);
-}
-
-template<typename T>
-void jmch::List<T>::sort() {
-    if (len < 2) return;
-    List<T> newArr = *this;
-    delete[] arr; copy(newArr);
-    mergeSort(arr, front, len - 1);
 }
 
 template<typename T>
