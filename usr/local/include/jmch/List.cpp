@@ -4,11 +4,9 @@
 #include <cstdlib>
 #include <initializer_list>
 #include <stdexcept>
-
+#include <vector>
 
 namespace jmch {
-    
-    class list_base_iterator;
 
     /// @brief A circular dynamically allocated list structure. Supports pushing/popping from both ends and negative indexing.
     /// @tparam T The type that the list will hold.
@@ -18,13 +16,15 @@ namespace jmch {
         class iterator;
         class const_iterator;
 
-        List() {init();}
+        List() {cap = 0; len = 0;}
         List(int s);
         List(const List<T> &src) {copy(src);}
         List(const std::initializer_list<T> &l) {copy(l);}
-        const List<T>& operator=(const List<T> &src);
-        const List<T>& operator=(const std::initializer_list<T> &l);
-        ~List() {delete[] arr;}
+        List(const std::vector<T> &v) {copy(v);}
+        const List<T>& operator=(const List<T> &src) {if (&src != this) copy(src); return *this;}
+        const List<T>& operator=(const std::initializer_list<T> &l) {copy(l); return *this;}
+        const List<T>& operator=(const std::vector<T> &v) {copy(v); return *this;}
+        ~List() {if (cap >= 16) delete[] arr;}
 
         /// @brief Adds an item to the back of the list.
         /// @param v The item to add.
@@ -50,7 +50,7 @@ namespace jmch {
         inline const T& operator[](int i) const;
         
         /// @brief Clears the contents of the list, starting over with length 0.
-        void clear() {delete[] arr; init();}
+        void clear() {if (cap >= 16) delete[] arr; cap = 0; len = 0;}
         
         /// @brief Reverses the list.
         void reverse();
@@ -92,10 +92,13 @@ namespace jmch {
         iterator end() {return iterator(this, len);}
         const_iterator end() const {return const_iterator(this, len);}
         const_iterator cend() const {return const_iterator(this, len);}
+
+        operator std::vector<T>() const
+            {std::vector<T> v; for (const T &e : *this) v.push_back(e); return v;}
     private:
-        void init();
         void copy(const List<T> &src);
         void copy(const std::initializer_list<T> &src);
+        void copy(const std::vector<T> &src);
         void grow();
         void shrink();
         
@@ -141,30 +144,14 @@ jmch::List<T>::List(int s) {
 }
 
 template<typename T>
-const jmch::List<T>& jmch::List<T>::operator=(const List<T> &src) {
-    if (this != &src) {
-        delete[] arr;
-        copy(src);
-    }
-    return *this;
-}
-
-template<typename T>
-const jmch::List<T>& jmch::List<T>::operator=(const std::initializer_list<T> &l) {
-    delete[] arr;
-    copy(l);
-    return *this;
-}
-
-template<typename T>
 void jmch::List<T>::pushBack(const T &v) {    
-    if (len == cap) grow();
+    if (len == cap || cap < 16) grow();
     operator[](++len - 1) = v;
 }
 
 template<typename T>
 void jmch::List<T>::pushFront(const T &v) {    
-    if (len == cap) grow();
+    if (len == cap || cap < 16) grow();
     front = (front - 1) % cap;
     if (front < 0) front += cap;
     arr[front] = v; len++;
@@ -201,6 +188,7 @@ inline const T& jmch::List<T>::operator[](int i) const {
 
 template<typename T>
 void jmch::List<T>::reverse() {
+    if (len < 2) return;
     List<T> newArr(len);
     for (int i = 0; i < len; i++) 
         newArr[-1 - i] = operator[](i);
@@ -209,6 +197,7 @@ void jmch::List<T>::reverse() {
 
 template<typename T>
 void jmch::List<T>::sort() {
+    if (len < 2) return;
     List<T> newArr = *this;
     delete[] arr; copy(newArr);
     mergeSort(arr, front, len - 1);
@@ -216,6 +205,9 @@ void jmch::List<T>::sort() {
 
 template<typename T>
 int jmch::List<T>::find(const T &e) const {
+    if (!len) return -1;
+    if (len == 1) return (operator[](1) == e) ? 0 : -1;
+    
     int l = 0, r = len - 1, mid;
     while (l <= r) {
         mid = (l + r) / 2;
@@ -250,15 +242,8 @@ T jmch::List<T>::select(int k) const {
 }
 
 template<typename T>
-void jmch::List<T>::init() {
-    cap = 16;
-    len = 0;
-    arr = new T[cap];
-    front = 0;
-}
-
-template<typename T>
 void jmch::List<T>::copy(const List<T> &src) {
+    if (cap >= 16) delete[] arr;
     cap = src.cap;
     len = src.len;
     arr = new T[src.cap];
@@ -269,6 +254,7 @@ void jmch::List<T>::copy(const List<T> &src) {
 
 template<typename T>
 void jmch::List<T>::copy(const std::initializer_list<T> &l) {
+    if (cap >= 16) delete[] arr;
     len = l.size();
     cap = 16; while (cap < len) cap <<= 1;
     arr = new T[cap];
@@ -278,86 +264,128 @@ void jmch::List<T>::copy(const std::initializer_list<T> &l) {
 }
 
 template<typename T>
-void jmch::List<T>::grow() {
-    T* newArr = new T[cap * 2];
-    for (int i = 0; i < len; i++) 
-        newArr[i] = operator[](i);
-    delete[] arr;
-    arr = newArr;
-    cap *= 2;
+void jmch::List<T>::copy(const std::vector<T> &v) {
+    if (cap >= 16) delete[] arr;
+    len = v.size();
+    cap = 16; while (cap < len) cap <<= 1;
+    arr = new T[cap];
     front = 0;
+    int i = 0; for (const T &e : v)
+        arr[i++] = e;
+}
+
+template<typename T>
+void jmch::List<T>::grow() {
+    // Capacity < 16 implies arr is not yet 
+    // initialized (via default constructor)
+    if (cap < 16) {
+        cap = 16;
+        arr = new T[cap];
+        front = 0;
+    } else {
+        T* newArr = new T[cap * 2];
+        for (int i = 0; i < len; i++) 
+            newArr[i] = operator[](i);
+        delete[] arr;
+        arr = newArr;
+        cap *= 2;
+        front = 0;
+    }
 }
 
 template<typename T>
 void jmch::List<T>::shrink() {
-    T* newArr = new T[cap / 2];
+    // Ensure cap never goes below 16.
+    T* newArr = new T[(cap >= 32) ? cap / 2 : cap];
     for (int i = 0; i < len; i++) 
         newArr[i] = operator[](i);
     delete[] arr;
     arr = newArr;
-    cap /= 2;
+    if (cap >= 32) cap /= 2;
     front = 0;
 }
 
-class jmch::list_base_iterator {
-public:    
-    typedef std::random_access_iterator_tag iterator_category;
-
-    list_base_iterator& operator++() {i++; return *this;}
-    list_base_iterator operator++(int)
-        {list_base_iterator it = *this; ++(*this); return it;} 
-    list_base_iterator& operator--() {i--; return *this;};
-    list_base_iterator operator--(int)
-        {list_base_iterator it = *this; --(*this); return it;}
-
-    list_base_iterator operator+(int n) const
-        {list_base_iterator ret = *this; ret.i += n; return ret;}
-    friend list_base_iterator operator+(int n, const list_base_iterator &it)
-        {return it + n;}
-    list_base_iterator operator-(int n) const
-        {list_base_iterator ret = *this; ret.i -= n; return ret;}
-    list_base_iterator operator-(const list_base_iterator &r) const 
-        {list_base_iterator ret = *this; ret.i -= r.i; return ret;}
-    list_base_iterator& operator+=(int n) {i += n; return *this;}
-    list_base_iterator& operator-=(int n) {i -= n; return *this;}
-
-    bool operator<(const list_base_iterator &r) const {return (i < r.i);}
-    bool operator>(const list_base_iterator &r) const {return (r < *this);}
-    bool operator<=(const list_base_iterator &r) const {return !(r < *this);}
-    bool operator>=(const list_base_iterator &r) const {return !(*this < r);}
-    bool operator==(const list_base_iterator& r) const {return (i == r.i);}
-    bool operator !=(const list_base_iterator &r) const {return !(*this == r);}
-protected:
-    int i;
-};
-
 /// @brief An iterator that points to an element in the list.
 template<typename T>
-class jmch::List<T>::iterator : public jmch::list_base_iterator {
+class jmch::List<T>::iterator : public std::iterator<std::random_access_iterator_tag, T> {
 public:    
     friend class jmch::List<T>::const_iterator;
     
     iterator() {list = nullptr; i = 0;}
     iterator(List<T> *l, int j) {list = l; i = j;}
 
+    iterator& operator++() {i++; return *this;}
+    iterator operator++(int)
+        {iterator it = *this; ++(*this); return it;} 
+    iterator& operator--() {i--; return *this;};
+    iterator operator--(int)
+        {iterator it = *this; --(*this); return it;}
+
+    iterator operator+(int n) const
+        {iterator ret = *this; ret.i += n; return ret;}
+    friend iterator operator+(int n, const iterator &it)
+        {return it + n;}
+    iterator operator-(int n) const
+        {iterator ret = *this; ret.i -= n; return ret;}
+    iterator operator-(const iterator &r) const 
+        {iterator ret = *this; ret.i -= r.i; return ret;}
+    iterator& operator+=(int n) {i += n; return *this;}
+    iterator& operator-=(int n) {i -= n; return *this;}
+
+    bool operator<(const iterator &r) const {return (i < r.i);}
+    bool operator>(const iterator &r) const {return (r < *this);}
+    bool operator<=(const iterator &r) const {return !(r < *this);}
+    bool operator>=(const iterator &r) const {return !(*this < r);}
+    bool operator==(const iterator& r) const {return (i == r.i);}
+    bool operator !=(const iterator &r) const {return !(*this == r);}
+    operator int() const {return i;}
+
     T& operator*() const {return list->operator[](i);}
     T* operator->() const {return &(list->operator[](i));}
 protected:
     List<T> *list;
+    int i;
 };
 
 /// @brief  A constant iterator to the list.
 template<typename T>
-class jmch::List<T>::const_iterator : public jmch::list_base_iterator {
+class jmch::List<T>::const_iterator : public std::iterator<std::random_access_iterator_tag, T> {
 public:   
     const_iterator() {list = nullptr; i = 0;}
-    const_iterator(const iterator &it) {list = it.list; i = it.i;}
+    const_iterator(const iterator &r) {list = r.list; i = r.i;}
     const_iterator(const List<T> *l, int j) {list = l; i = j;}
     
+    const_iterator& operator++() {i++; return *this;}
+    const_iterator operator++(int)
+        {const_iterator it = *this; ++(*this); return it;} 
+    const_iterator& operator--() {i--; return *this;};
+    const_iterator operator--(int)
+        {const_iterator it = *this; --(*this); return it;}
+
+    const_iterator operator+(int n) const
+        {const_iterator ret = *this; ret.i += n; return ret;}
+    friend const_iterator operator+(int n, const const_iterator &it)
+        {return it + n;}
+    const_iterator operator-(int n) const
+        {const_iterator ret = *this; ret.i -= n; return ret;}
+    const_iterator operator-(const const_iterator &r) const 
+        {const_iterator ret = *this; ret.i -= r.i; return ret;}
+    const_iterator& operator+=(int n) {i += n; return *this;}
+    const_iterator& operator-=(int n) {i -= n; return *this;}
+
+    bool operator<(const const_iterator &r) const {return (i < r.i);}
+    bool operator>(const const_iterator &r) const {return (r < *this);}
+    bool operator<=(const const_iterator &r) const {return !(r < *this);}
+    bool operator>=(const const_iterator &r) const {return !(*this < r);}
+    bool operator==(const const_iterator& r) const {return (i == r.i);}
+    bool operator !=(const const_iterator &r) const {return !(*this == r);}
+    operator int() const {return i;}
+
     const T& operator*() const {return list->operator[](i);}
     const T* operator->() const {return &(list->operator[](i));}
 protected:
     const List<T> *list;
+    int i;
 };
 
 #endif
