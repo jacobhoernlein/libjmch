@@ -2,8 +2,6 @@
 #define JMCH_LIST_CPP
 
 #include <cstdlib>
-#include <initializer_list>
-#include <stdexcept>
 #include <vector>
 
 namespace jmch {
