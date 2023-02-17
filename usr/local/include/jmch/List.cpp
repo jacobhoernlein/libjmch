@@ -2,6 +2,7 @@
 #define JMCH_LIST_CPP
 
 #include <cstdlib>
+#include <stdexcept>
 #include <vector>
 
 namespace jmch {
@@ -16,9 +17,9 @@ namespace jmch {
 
         List() {cap = 0; len = 0;}
         List(int s);
-        List(const List<T> &src) {copy(src);}
-        List(const std::initializer_list<T> &l) {copy(l);}
-        List(const std::vector<T> &v) {copy(v);}
+        List(const List<T> &src) {cap = 0; len = 0; copy(src);}
+        List(const std::initializer_list<T> &l) {cap = 0; len = 0; copy(l);}
+        List(const std::vector<T> &v) {cap = 0; len = 0; copy(v);}
         const List<T>& operator=(const List<T> &src) {if (&src != this) copy(src); return *this;}
         const List<T>& operator=(const std::initializer_list<T> &l) {copy(l); return *this;}
         const List<T>& operator=(const std::vector<T> &v) {copy(v); return *this;}
@@ -88,8 +89,7 @@ namespace jmch {
         const_iterator end() const {return const_iterator(this, len);}
         const_iterator cend() const {return const_iterator(this, len);}
 
-        operator std::vector<T>() const
-            {std::vector<T> v; for (const T &e : *this) v.push_back(e); return v;}
+        operator std::vector<T>() const {return std::vector<T>(begin(), end());}
     private:
         void copy(const List<T> &src);
         void copy(const std::initializer_list<T> &src);
@@ -308,7 +308,7 @@ protected:
     int i;
 };
 
-/// @brief  A constant iterator to the list.
+/// @brief A constant iterator to the list.
 template<typename T>
 class jmch::List<T>::const_iterator : public std::iterator<std::random_access_iterator_tag, T> {
 public:   
