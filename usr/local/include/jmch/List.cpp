@@ -102,7 +102,7 @@ namespace jmch {
         int len;
         int front;
     };
-};
+}
 
 template<typename T>
 jmch::List<T>::List(int s) {
