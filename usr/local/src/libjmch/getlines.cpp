@@ -1,5 +1,5 @@
 #include <fstream>
-#include "../../include/jmch/getlines.h"
+#include "jmch/getlines.h"
 
 using namespace jmch;
 using namespace std;

@@ -3,11 +3,10 @@
 
 #include <functional>
 
-namespace jmch {
+namespace std {
     
-    // Hashes a std::pair. Modified from geeksforgeeks.
-    struct hash_pair {
-        template <class T1, class T2>
+    template<typename T1, typename T2>
+    struct hash<std::pair<T1, T2>> {
         std::size_t operator()(const std::pair<T1, T2>& p) const {
             std::size_t hash1 = std::hash<T1>{}(p.first);
             std::size_t hash2 = std::hash<T2>{}(p.second);
