@@ -72,6 +72,8 @@ namespace jmch {
         iterator end() {return iterator(this, len);}
         const_iterator end() const {return const_iterator(this, len);}
         const_iterator cend() const {return const_iterator(this, len);}
+
+        operator std::vector<T>() const {return std::vector(begin(), end());}
     private:
         template<class it> void copy(it a, it b);
         void copy(const Array<T> &src);
