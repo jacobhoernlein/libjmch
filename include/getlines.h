@@ -2,7 +2,7 @@
 #define JMCH_GETLINES_H
 
 #include <string>
-#include "List.cpp"
+#include "Array.cpp"
 
 namespace jmch {
     
@@ -12,7 +12,7 @@ namespace jmch {
     /// @return A List of strings representing the lines of the file.
     /// @exception std::argument_error if argc < 2.
     /// @exception std::ifstream::failure if the file doesn't exist.
-    List<std::string> getlines(int argc, char** argv);
+    Array<std::string> getlines(int argc, char** argv);
 }
 
 #endif

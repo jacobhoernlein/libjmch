@@ -1,20 +1,22 @@
 #include <fstream>
-#include "jmch/getlines.h"
+#include "../include/getlines.h"
 
-using namespace jmch;
 using namespace std;
 
-List<string> jmch::getlines(int argc, char** argv) {
-    if (argc != 2) throw invalid_argument("Supply input file.");
-            
-    ifstream file(argv[1]);
-    if (!file.is_open()) throw fstream::failure("Invalid input file.");
+namespace jmch {
+    Array<string> getlines(int argc, char** argv) {
+        if (argc != 2) throw invalid_argument("Supply input file.");
+                
+        ifstream file(argv[1]);
+        if (!file.is_open()) throw fstream::failure("Invalid input file.");
 
-    List<string> lines;
-    string line;
+        Array<string> lines;
+        string line;
 
-    while (getline(file, line)) lines.pushBack(line);
-    file.close();
-
-    return lines;
+        while (getline(file, line))
+            lines.pushBack(line);
+        
+        file.close();
+        return lines;
+    }
 }

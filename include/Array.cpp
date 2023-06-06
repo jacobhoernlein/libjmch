@@ -87,15 +87,14 @@ namespace jmch {
 
     template<typename T>
     Array<T>::Array(int s) {
-        if (s < 1) {
+        if (s < 1) 
             arr = nullptr;
-            return;
+        else {
+            arr = new T[s];
+            cap = s;
+            len = s;
+            front = 0;
         }
-
-        arr = new T[s];
-        cap = s;
-        len = s;
-        front = 0;
     }
 
     template<typename T>
@@ -117,12 +116,12 @@ namespace jmch {
     template<typename T>
     T& Array<T>::operator[](int i) {
         if (i < 0) i += len;
-        if (arr && i >= 0 && i < len) {
-            i += front;
-            if (i >= cap) i -= cap;
-            return arr[i];
-        }
-        throw std::out_of_range("jmch::Array Access Out of Range.");
+        if (!arr || i < 0 || i >= len)
+            throw std::out_of_range("jmch::Array Access Out of Range.");
+
+        i += front;
+        if (i >= cap) i -= cap;
+        return arr[i];
     }
 
     template<typename T>
@@ -133,21 +132,21 @@ namespace jmch {
     template<typename T>
     void Array<T>::pushFront(T v) {    
         if (!arr) {
-            resize(2);
             len = 0;
             front = 1;
+            resize(2);
         } else if (len == cap)
             resize(cap * 2);
         
-        front -= 1; if (front == -1) front = cap - 1;
+        front--; if (front < 0) front = cap - 1;
         len++; arr[front] = v;
     }
 
     template<typename T>
     void Array<T>::pushBack(T v) {    
         if (!arr) {
-            resize(2); 
             len = 0;
+            resize(2); 
         } else if (len == cap)
             resize(cap * 2);
         
@@ -177,54 +176,50 @@ namespace jmch {
     template<class it>
     void Array<T>::copy(it a, it b) {
         len = std::distance(a, b);
-        if (len < 0)
-            throw std::invalid_argument("Invalid distance between a and b.");
-        if (len == 0) {
+        if (len < 1)
             arr = nullptr;
-            return;
+        else {
+            arr = new T[len];
+            int i = 0;
+            for (it c = a; c != b; c++) 
+                arr[i++] = *c;
+            
+            cap = len;
+            front = 0;
         }
-
-        arr = new T[len];
-        int i = 0; for (it c = a; c != b; c++) 
-            arr[i++] = *c;
-        
-        cap = len;
-        front = 0;
     }
 
     template<typename T>
     void Array<T>::copy(const Array<T> &other) {
-        if (!other.arr) {
+        if (!other.arr) 
             arr = nullptr;
-            return;
-        }
+        else {
+            arr = new T[other.cap];
+            for (int i = 0; i < other.len; i++) 
+                arr[i] = other[i];
         
-        arr = new T[other.cap];
-        for (int i = 0; i < other.len; i++) 
-            arr[i] = other[i];
-    
-        cap = other.cap;
-        len = other.len;
-        front = 0;
+            cap = other.cap;
+            len = other.len;
+            front = 0;
+        }
     }
 
     template<typename T>
     void Array<T>::resize(int c) {
-        if (c < 1) {
+        if (c < 1) 
             clear();
-            return;
-        }
-        
-        T* newArr = new T[c];
-        if (arr) {
-            for (int i = 0; i < len; i++) 
-                newArr[i] = operator[](i);
-            delete[] arr;
-        }
+        else {
+            T* newArr = new T[c];
+            if (arr) {
+                for (int i = 0; i < len; i++) 
+                    newArr[i] = operator[](i);
+                delete[] arr;
+            }
 
-        arr = newArr;
-        cap = c;
-        front = 0;
+            arr = newArr;
+            cap = c;
+            front = 0;
+        }
     }
 
     template<typename T>
